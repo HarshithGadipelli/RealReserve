@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Reservation portal</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Noto+Sans+Devanagari:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<style>
+/* ================= ROOT / THEMES ================= */
+:root{
+  --gov-blue:#0b3d91;
+  --gov-mid:#0a326f;
+  --gov-saffron:#ff8f00;
+  --gov-green:#0b8b3c;
+  --bg:#eef4fb;
+  --card:#ffffff;
+  --muted:#58606a;
+  --focus: 3px solid rgba(11,61,145,0.16);
+  --radius:12px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:Roboto, 'Noto Sans Devanagari', Arial, sans-serif;
+  background:linear-gradient(180deg,var(--bg),#e6eef9);
+  color:#072;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* dark mode variables (will be toggled via body.dark) */
+body.dark{
+  --bg:#071023;
+  --card:#071430;
+  --muted:#9fb1d6;
+  --gov-blue:#2f6bfd;
+  color:#e8f0ff;
+}
+body.high-contrast{
+  --gov-blue:#001f5b;
+  --card:#fff9e6;
+  --muted:#222;
+  --saffron-bg: #ffb84d;
+}
+
+/* layout */
+.container{max-width:1200px;margin:20px auto;padding:18px}
+.header{
+  display:flex;align-items:center;gap:16px;background:linear-gradient(90deg,var(--gov-mid),var(--gov-blue));color:#fff;padding:16px;border-radius:var(--radius);box-shadow:0 12px 40px rgba(2,20,60,0.12)
+}
+.header-left{display:flex;gap:14px;align-items:center}
+.emblem-3d{width:96px;height:96px;perspective:900px}
+.emblem-card{
+  width:84px;height:84px;border-radius:14px;background:linear-gradient(135deg,#fff8ea,#fff1d6);
+  display:flex;align-items:center;justify-content:center;transform-style:preserve-3d;
+  box-shadow:0 12px 30px rgba(0,0,0,0.12);animation:emblemRotate 10s linear infinite;border:1px solid rgba(0,0,0,0.04)
+}
+@keyframes emblemRotate{0%{transform:rotateY(0) rotateX(0)}50%{transform:rotateY(180deg) rotateX(10deg)}100%{transform:rotateY(360deg) rotateX(0)}}
+.header .title{font-weight:700;font-size:20px}
+.header .subtitle{font-size:13px;color:rgba(255,255,255,0.92)}
+.header-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+/* card */
+.card{background:var(--card);padding:18px;border-radius:10px;margin:16px 0;box-shadow:0 12px 30px rgba(2,20,40,0.06);border:1px solid rgba(0,0,0,0.06)}
+.card h2{margin:0;color:var(--gov-blue)}
+label{display:block;font-weight:600;margin-top:8px}
+input,textarea,select,button{font-family:inherit}
+input,textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid #cdd6e6;background:#fff;margin-top:6px}
+textarea{min-height:100px}
+button{background:var(--gov-blue);color:#fff;padding:10px 14px;border-radius:8px;border:none;cursor:pointer}
+button.ghost{background:transparent;border:1px solid var(--gov-blue);color:var(--gov-blue)}
+.small{padding:6px 10px;font-size:13px}
+.muted{color:var(--muted)}
+.hidden{display:none}
+
+/* focus & accessibility */
+:focus{outline:none;box-shadow:var(--focus);border-radius:8px}
+button:focus,input:focus,textarea:focus{box-shadow:var(--focus)}
+a{color:var(--gov-blue)}
+
+/* progress bar + animations */
+.progress{height:10px;background:linear-gradient(90deg,#dfeeff,#e9f3ff);border-radius:8px;overflow:hidden;margin-top:10px}
+.progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--gov-blue),#4b6ef5);width:0%;transition:width 450ms cubic-bezier(.2,.9,.3,1)}
+.step-animate{transform-origin:center;transition:transform 400ms cubic-bezier(.2,.9,.3,1),opacity 400ms}
+
+/* uploader (drag & drop) */
+.uploader{
+  border:2px dashed rgba(11,61,145,0.12);
+  padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff,#fbfcff);
+  text-align:center;color:var(--muted);
+}
+.uploader.dragover{border-color:var(--gov-blue);background:linear-gradient(180deg,#f0f6ff,#eef6ff)}
+.preview{display:flex;gap:12px;align-items:center;margin-top:8px}
+.thumb{width:120px;height:80px;border-radius:8px;object-fit:cover;border:1px solid rgba(0,0,0,0.06)}
+
+/* captcha canvas */
+.captcha-wrap{display:flex;align-items:center;gap:12px;margin-top:8px}
+#captchaCanvas{width:340px;height:84px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:#fff}
+
+/* schemes */
+.scheme-card{background:#fff;padding:12px;border-radius:10px;margin:8px 0;box-shadow:0 6px 18px rgba(0,0,0,0.06);animation:fadeIn .5s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* admin table + pagination */
+.table{width:100%;border-collapse:collapse;margin-top:12px}
+.table th,.table td{padding:10px;border:1px solid #e6eef5;font-size:14px}
+.table th{background:var(--gov-blue);color:#fff;cursor:pointer}
+.pagination{display:flex;gap:8px;align-items:center;margin-top:10px}
+
+/* responsive */
+@media(max-width:900px){ .header{flex-direction:column;align-items:flex-start} .header-actions{margin-left:0} .preview{flex-direction:column} .captcha-wrap{flex-direction:column} }
+
+.header-actions .ghost{
+  color:#ffffff;
+  border-color:rgba(255,255,255,0.7);
+}
+
+.header-actions .ghost:hover{
+  background:rgba(255,255,255,0.12);
+}
+</style>
+</head>
+<body>
+
+<div class="container" id="app">
+
+  <!-- HEADER -->
+  <div class="header" role="banner" aria-label="Smart Reservation header">
+    <div class="header-left" style="display:flex;align-items:center;gap:12px">
+      <div class="emblem-3d" aria-hidden="true">
+      <div class="emblem-card">
+  <img
+    src="logo.png"
+    alt="Logo"
+    style="width:100%;height:100%;object-fit:cover;border-radius:12px"
+  />
+</div>
+
+
+      </div>
+      <div>
+        <div class="title">REAL RESERVATION - GOV PORTAL</div>
+        <div class="subtitle muted">The right reservation system using income of an individual</div>
+      </div>
+    </div>
+
+    <div class="header-actions" role="region" aria-label="Header actions">
+      <button id="toggleContrast" class="ghost small" aria-pressed="false" title="Toggle high contrast">High Contrast</button>
+      <button id="toggleDark" class="ghost small" aria-pressed="false" title="Toggle dark mode">Dark Mode</button>
+      <button id="openAdmin" class="ghost small" title="Open admin">Admin</button>
+    </div>
+  </div>
+
+  <!-- PROGRESS / STEPPER -->
+  <div class="card" role="navigation" aria-label="Registration progress">
+    <h2>Registration</h2>
+    <div style="display:flex;gap:12px;align-items:center">
+      <div style="flex:1">
+        <div style="display:flex;gap:8px;align-items:center">
+          <div id="stepDots" style="display:flex;gap:8px">
+            <div class="step-dot" data-step="1" style="width:12px;height:12px;border-radius:50%;background:#dfeaff"></div>
+            <div class="step-dot" data-step="2" style="width:12px;height:12px;border-radius:50%;background:#dfeaff"></div>
+            <div class="step-dot" data-step="3" style="width:12px;height:12px;border-radius:50%;background:#dfeaff"></div>
+          </div>
+          <div class="muted" style="margin-left:auto">Step <span id="currentStep">1</span> of 3</div>
+        </div>
+        <div class="progress" aria-hidden="true" style="margin-top:10px"><i id="progressBar" style="width:33%"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTRATION MULTI-STEP -->
+  <div class="card" id="regCard" role="main" aria-label="Registration form">
+    <h2>Register — Multi-step</h2>
+
+    <!-- STEP 1 -->
+    <section id="step1" class="step step-animate" aria-labelledby="step1title">
+      <h3 id="step1title">Step 1 — Identity & Document</h3>
+      <label for="mobile">Mobile number</label>
+      <input id="mobile" maxlength="10" inputmode="numeric" placeholder="10-digit mobile" aria-required="true">
+
+      <label for="aadhaar">Aadhaar number</label>
+      <input id="aadhaar" maxlength="12" inputmode="numeric" placeholder="12-digit Aadhaar" aria-required="true">
+
+      <label>Upload certificate (drag & drop or click)</label>
+      <div id="uploader" class="uploader" tabindex="0" role="button" aria-label="Upload certificate file">
+        <div>Drag & drop an image or PDF here — or click to choose</div>
+        <div class="muted" style="margin-top:6px">Supported: JPG/PNG/PDF (preview may depend on browser)</div>
+        <input id="fileInput" type="file" accept="image/*,.pdf" style="display:none">
+        <div id="previewArea" class="preview" aria-live="polite"></div>
+      </div>
+
+      <div style="margin-top:12px">
+        <button id="clearUpload" class="ghost small">Clear upload</button>
+      </div>
+
+      <label style="margin-top:12px">CAPTCHA</label>
+      <div class="captcha-wrap" role="group" aria-label="captcha">
+        <canvas id="captchaCanvas" width="340" height="84" aria-label="captcha image"></canvas>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;gap:8px">
+            <button id="refreshCaptcha" class="ghost small">Refresh</button>
+            <button id="audioCaptcha" class="ghost small">Listen</button>
+          </div>
+          <div class="muted">Type characters shown above (case-insensitive)</div>
+        </div>
+      </div>
+
+      <input id="captchaInput" placeholder="Enter CAPTCHA here" aria-label="captcha input" style="margin-top:8px">
+      <div style="margin-top:10px">
+        <button id="verifyBtn">Verify & Continue</button>
+      </div>
+      <p id="authMessage" class="muted" style="margin-top:8px"></p>
+    </section>
+
+    <!-- STEP 2 -->
+    <section id="step2" class="step step-animate hidden" aria-labelledby="step2title">
+      <h3 id="step2title">Step 2 — Personal & Certificate</h3>
+      <label for="nameInput">Full name</label>
+      <input id="nameInput" placeholder="Full name" aria-required="true">
+
+      <label for="certText">Certificate text (paste if you like)</label>
+      <textarea id="certText" placeholder="Paste certificate text here..."></textarea>
+
+      <!-- NOTE: AI heuristics/auto-extract removed per request; extract is manual only -->
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="manualNote" class="ghost small" disabled>Manual income entry required</button>
+        <button id="back1" class="ghost small">← Back</button>
+      </div>
+
+      <label style="margin-top:10px">Annual income (₹)</label>
+      <input id="incomeInput" type="number" placeholder="Enter annual income in INR" aria-required="true">
+
+      <div style="margin-top:12px">
+        <button id="toReviewBtn">Next →</button>
+      </div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section id="step3" class="step step-animate hidden" aria-labelledby="step3title">
+      <h3 id="step3title">Step 3 — Review & Submit</h3>
+      <div id="reviewBox" class="muted" aria-live="polite"></div>
+      <div style="margin-top:10px">
+        <button id="back2" class="ghost small">← Back</button>
+        <button id="submitBtn" class="small">Submit Profile</button>
+      </div>
+      <div id="submitMsg" style="margin-top:10px" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <!-- SCHEMES -->
+  <div id="schemesCard" class="card hidden" aria-live="polite">
+    <h2>Eligible Schemes</h2>
+    <div id="schemesList"></div>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="adminCard" class="card hidden" aria-live="polite" aria-label="Admin panel">
+    <h2>Admin Dashboard</h2>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <input id="adminSearch" placeholder="Search name / mobile / aadhaar" style="flex:1">
+      <select id="rowsPerPage" class="small" style="width:110px">
+        <option value="5">5 / page</option>
+        <option value="10" selected>10 / page</option>
+        <option value="25">25 / page</option>
+      </select>
+      <button id="exportCsv" class="small">Export CSV</button>
+      <button id="closeAdmin" class="ghost small">Close</button>
+    </div>
+
+    <table class="table" id="adminTable" role="table">
+      <thead><tr><th data-key="name">Name ▲▼</th><th data-key="mobile">Mobile</th><th data-key="aadhaar">Aadhaar</th><th data-key="income">Income</th><th data-key="category">Category</th><th data-key="date">Submitted</th><th>Actions</th></tr></thead>
+      <tbody id="adminBody"></tbody>
+    </table>
+
+    <div class="pagination" style="justify-content:flex-end;margin-top:8px">
+      <button id="prevPage" class="ghost small">Prev</button>
+      <span id="pageInfo" class="muted"></span>
+      <button id="nextPage" class="ghost small">Next</button>
+    </div>
+
+    <div style="margin-top:10px">
+      <h4>Activity Log</h4>
+      <ul id="activityLog" class="muted" style="padding-left:18px;max-height:180px;overflow:auto"></ul>
+    </div>
+  </div>
+
+</div> <!-- container -->
+
+<script>
+/* ================= CONFIG & STORAGE ================= */
+const ADMIN_KEY = 'REALRESERVATIONPROCESS';
+const STORAGE_KEY = 'sr_pro_v3_users';
+const ACTIVITY_KEY = 'sr_pro_v3_activity';
+
+function loadUsers(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){ return []; } }
+function saveUsers(arr){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }catch(e){ console.error(e); } }
+function loadActivity(){ try{ return JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]'); }catch(e){ return []; } }
+function pushActivity(entry){ const a = loadActivity(); a.unshift(entry); localStorage.setItem(ACTIVITY_KEY, JSON.stringify(a.slice(0,200))); }
+
+/* State */
+let users = loadUsers();
+let activities = loadActivity();
+let lastDeleted = null;
+let captchaValue = '';
+let currentStep = 1;
+let adminState = { page:1, perPage: Number($('#rowsPerPage').val()), sortKey:'date', sortDir:'desc' };
+
+/* ================= UI HELPERS ================= */
+function showToast(msg, ms=2200){ $('#authMessage').text(msg); $('#toast').stop(true).text(msg).fadeIn(160); setTimeout(()=>$('#toast').fadeOut(200), ms); }
+function maskAadhaar(a){ const s=String(a||''); return s.length>=4 ? 'XXXXXXXX'+s.slice(-4) : 'XXXX'; }
+function getCategory(num){ num = Number(num||0); if(num<100000) return 'A'; if(num<200000) return 'B'; if(num<500000) return 'C'; if(num<1000000) return 'D'; if(num<2000000) return 'E'; return 'F'; }
+
+/* ================= PROGRESS BAR & STEPS ================= */
+function setStep(step){
+  currentStep = step;
+  $('#currentStep').text(step);
+  const pct = Math.round((step/3)*100);
+  $('#progressBar').css('width', pct + '%');
+  $('.step-dot').each(function(){ $(this).css('background', $(this).data('step')<=step ? '#4b6ef5' : '#dfeaff'); });
+  // animate sections
+  $('.step').addClass('hidden');
+  $(`#step${step}`).removeClass('hidden');
+  // small animation
+  $(`#step${step}`).find('.step-animate').css({transform:'translateY(6px)',opacity:0}).animate({opacity:1,translateY:0},300);
+}
+setStep(1);
+
+/* ================= CAPTCHA (canvas + audio) ================= */
+function randChars(n=6){ const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789abcdefghjkmnpqrstuvwxyz'; let s=''; for(let i=0;i<n;i++) s+=chars.charAt(Math.floor(Math.random()*chars.length)); return s; }
+function drawCaptcha(txt){
+  const c = document.getElementById('captchaCanvas'); const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  const g = ctx.createLinearGradient(0,0,c.width,0); g.addColorStop(0,'#f7fbff'); g.addColorStop(1,'#eef6ff');
+  ctx.fillStyle = g; ctx.fillRect(0,0,c.width,c.height);
+  // noise
+  for(let i=0;i<16;i++){ ctx.beginPath(); ctx.arc(Math.random()*c.width, Math.random()*c.height, Math.random()*12+2,0,Math.PI*2); ctx.fillStyle=`rgba(0,0,0,${0.01+Math.random()*0.04})`; ctx.fill(); }
+  for(let i=0;i<txt.length;i++){
+    const ch = txt[i]; const x = 24 + i*(c.width-48)/txt.length + (Math.random()*10-5); const y = 36 + (Math.random()*14-7);
+    ctx.save(); ctx.translate(x,y); ctx.rotate((Math.random()*40-20)*Math.PI/180);
+    ctx.font = `${22 + Math.floor(Math.random()*10)}px serif`;
+    ctx.fillStyle = `rgb(${40+Math.random()*120|0},${40+Math.random()*120|0},${40+Math.random()*120|0})`;
+    ctx.fillText(ch,0,0); ctx.restore();
+  }
+  for(let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(Math.random()*c.width, Math.random()*c.height); ctx.lineTo(Math.random()*c.width, Math.random()*c.height); ctx.strokeStyle=`rgba(0,0,0,${0.03+Math.random()*0.06})`; ctx.lineWidth=1; ctx.stroke(); }
+}
+function refreshCaptcha(){ captchaValue = randChars(6); drawCaptcha(captchaValue); document.getElementById('captchaCanvas').title = 'CAPTCHA: '+captchaValue; }
+refreshCaptcha();
+$('#refreshCaptcha').on('click', e=>{ e.preventDefault(); refreshCaptcha(); showToast('CAPTCHA refreshed'); });
+$('#audioCaptcha').on('click', e=>{ e.preventDefault(); if('speechSynthesis' in window){ const u=new SpeechSynthesisUtterance(captchaValue.split('').join(' ')); u.lang='en-GB'; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } else showToast('Audio not supported'); });
+
+/* ================= Uploader (drag & drop) ================= */
+const uploader = document.getElementById('uploader');
+const fileInput = document.getElementById('fileInput');
+const previewArea = document.getElementById('previewArea');
+let uploadedFile = null;
+
+function clearPreview(){ previewArea.innerHTML=''; uploadedFile=null; fileInput.value=''; }
+function renderPreview(file){
+  previewArea.innerHTML='';
+  if(!file) return;
+  const type = file.type || '';
+  if(type.startsWith('image/')){
+    const img = document.createElement('img'); img.className='thumb'; img.alt='Uploaded image preview';
+    img.src = URL.createObjectURL(file);
+    previewArea.appendChild(img);
+  } else if(type === 'application/pdf'){
+    // For PDFs, create an object/embed preview where available
+    const embed = document.createElement('embed'); embed.src = URL.createObjectURL(file); embed.type = 'application/pdf'; embed.className='thumb'; embed.style.width='120px'; embed.style.height='160px';
+    previewArea.appendChild(embed);
+  } else {
+    const div = document.createElement('div'); div.className='muted'; div.textContent = `File selected: ${file.name}`;
+    previewArea.appendChild(div);
+  }
+  uploadedFile = file;
+}
+
+uploader.addEventListener('click', ()=>fileInput.click());
+uploader.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+
+uploader.addEventListener('dragover', (e)=>{ e.preventDefault(); uploader.classList.add('dragover'); });
+uploader.addEventListener('dragleave', ()=>uploader.classList.remove('dragover'));
+uploader.addEventListener('drop', (e)=>{ e.preventDefault(); uploader.classList.remove('dragover'); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if(f){ fileInput.files = e.dataTransfer.files; renderPreview(f); showToast('File ready for review'); } });
+
+fileInput.addEventListener('change', (e)=>{ const f = e.target.files[0]; if(f) { renderPreview(f); showToast('File ready for review'); } });
+$('#clearUpload').on('click', ()=>{ clearPreview(); showToast('Upload cleared'); });
+
+/* ================= STEP HANDLERS ================= */
+$('#verifyBtn').on('click', function(){
+  const typed = $('#captchaInput').val().trim(); const mobile = $('#mobile').val().trim(); const aadhaar = $('#aadhaar').val().trim();
+  if(!/^[0-9]{10}$/.test(mobile)){ showToast('Enter valid 10-digit mobile'); return; }
+  if(!/^[0-9]{12}$/.test(aadhaar)){ showToast('Enter valid 12-digit Aadhaar'); return; }
+  if(!typed){ showToast('Enter CAPTCHA'); return; }
+  if(typed.toLowerCase() !== captchaValue.toLowerCase()){ showToast('CAPTCHA mismatch'); refreshCaptcha(); return; }
+  showToast('Verified — continue'); pushActivity({action:'captcha_verify', time:new Date().toLocaleString()});
+  setStep(2);
+});
+
+$('#back1').on('click', ()=>{ setStep(1); });
+$('#toReviewBtn').on('click', function(){
+  const name = $('#nameInput').val().trim(); const income = $('#incomeInput').val().trim();
+  if(!name || !income){ showToast('Enter name and income'); return; }
+  $('#reviewBox').html(`<b>Name:</b> ${name}<br><b>Mobile:</b> ${$('#mobile').val().trim()}<br><b>Aadhaar:</b> ${maskAadhaar($('#aadhaar').val().trim())}<br><b>Income:</b> ₹${income}`);
+  setStep(3);
+});
+$('#back2').on('click', ()=> setStep(2));
+
+/* ================= SUBMIT PROFILE ================= */
+$('#submitBtn').on('click', function(){
+  const user = { name: $('#nameInput').val().trim(), mobile: $('#mobile').val().trim(), aadhaar: $('#aadhaar').val().trim(), income: Number($('#incomeInput').val().trim()), category: getCategory($('#incomeInput').val().trim()), date: new Date().toLocaleString() };
+  if(users.some(u => String(u.aadhaar) === String(user.aadhaar))){ showToast('Aadhaar already registered'); return; }
+  users.push(user); saveUsers(users); pushActivity({action:'create', user:user.name, time:user.date});
+  showToast('Profile submitted'); renderSchemes(user.category); $('#schemesCard').removeClass('hidden'); setTimeout(()=>resetRegistration(), 600);
+});
+
+/* reset registration */
+function resetRegistration(){
+  $('#mobile,#aadhaar,#nameInput,#certText,#incomeInput,#captchaInput').val('');
+  clearPreview(); refreshCaptcha(); setStep(1);
+}
+
+/* ================= SCHEMES ================= */
+function renderSchemes(cat){
+  const schemes = {
+    A: ['NFSA (Ration Support)','PMAY–Gramin','NRLM','Ayushman Bharat','MGNREGA Priority','PM-DAKSH Skill Support'],
+    B: ['Post-Matric Scholarships','Nai Roshni','Education Loan Subsidy','PM-Kisan (selected)','Skill India Programs','Ujjwala LPG Subsidy'],
+    C: ['IGNOU Fee Reimbursement','Exam Coaching Assistance','PM Vishwakarma','Minority Welfare Grants','Education Loan Subsidy'],
+    D: ['Startup India Seed Fund','MUDRA Loans','Stand-Up India','Digital India Internships','TIDE Grants'],
+    E: ['MSME Boost Scheme','Make in India Incentives','Solar Rooftop Subsidy','Export Promotion Capital','Industrial Subsidies'],
+    F: ['Investment Advisory Portal','Sovereign Gold Bond benefits','NPS Tier-II Incentives','Senior Citizen Savings','Digital Rupee Pilot Access']
+  };
+  const arr = schemes[cat] || [];
+  $('#schemesList').empty();
+  arr.forEach(s => $('#schemesList').append(`<div class="scheme-card">${s}</div>`));
+}
+
+/* ================= ADMIN: table, search, sort, pagination ================= */
+function renderAdminTable(){
+  const q = $('#adminSearch').val().trim().toLowerCase();
+  let list = users.slice();
+  if(q) list = list.filter(u => (u.name+u.mobile+(u.aadhaar||'')+u.income).toLowerCase().includes(q));
+  const sk = adminState.sortKey;
+  list.sort((a,b) => {
+    if(sk==='income') return adminState.sortDir==='asc' ? a.income - b.income : b.income - a.income;
+    if(sk==='name') return adminState.sortDir==='asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+    if(sk==='date') return adminState.sortDir==='asc' ? new Date(a.date) - new Date(b.date) : new Date(b.date) - new Date(a.date);
+    return 0;
+  });
+  adminState.perPage = Number($('#rowsPerPage').val() || 10);
+  const total = list.length; const pages = Math.max(1, Math.ceil(total/adminState.perPage));
+  adminState.page = Math.min(adminState.page, pages);
+  const start = (adminState.page-1)*adminState.perPage;
+  const pageItems = list.slice(start, start+adminState.perPage);
+  $('#adminBody').empty();
+  pageItems.forEach((u,idx)=> {
+    const ridx = start + idx;
+    $('#adminBody').append(`<tr>
+      <td>${u.name}</td><td>${u.mobile}</td><td>${maskAadhaar(u.aadhaar)}</td><td>${u.income}</td><td>${u.category}</td><td>${u.date}</td>
+      <td><button class="ghost small admin-edit" data-idx="${ridx}">Edit</button> <button class="small admin-delete" data-idx="${ridx}">Delete</button></td>
+    </tr>`);
+  });
+  $('#pageInfo').text(`Page ${adminState.page} / ${pages} (${total} records)`);
+}
+$('#adminTable').on('click','th[data-key]', function(){ const k = $(this).data('key'); if(adminState.sortKey===k) adminState.sortDir = adminState.sortDir==='asc' ? 'desc' : 'asc'; else { adminState.sortKey=k; adminState.sortDir='desc'; } renderAdminTable(); });
+$('#rowsPerPage').on('change', ()=>{ adminState.page=1; renderAdminTable(); });
+$('#prevPage').on('click', ()=>{ if(adminState.page>1) adminState.page--; renderAdminTable(); });
+$('#nextPage').on('click', ()=>{ adminState.page++; renderAdminTable(); });
+$('#adminSearch').on('input', ()=>{ adminState.page=1; renderAdminTable(); });
+
+/* edit/delete */
+$('#adminBody').on('click', '.admin-delete', function(){ const idx = $(this).data('idx'); if(!confirm('Delete user permanently?')) return; lastDeleted = users.splice(idx,1)[0]; saveUsers(users); renderAdminTable(); pushActivity({action:'delete', user:lastDeleted.name, time:new Date().toLocaleString()}); showToast('User deleted — you can Undo'); });
+$('#adminBody').on('click', '.admin-edit', function(){ const idx = $(this).data('idx'); const u = users[idx]; const newName = prompt('Edit name', u.name); if(newName===null) return; const newMobile = prompt('Edit mobile', u.mobile); if(!/^\d{10}$/.test(newMobile||'')){ showToast('Invalid mobile'); return; } const newIncome = prompt('Edit income', String(u.income)); users[idx].name=newName; users[idx].mobile=newMobile; users[idx].income=Number(newIncome)||u.income; users[idx].category=getCategory(users[idx].income); users[idx].date=new Date().toLocaleString(); saveUsers(users); renderAdminTable(); pushActivity({action:'edit', user:users[idx].name, time:new Date().toLocaleString()}); showToast('User updated'); });
+
+/* undo */
+$('#openAdmin').on('click', function(){
+  const key = prompt('Enter admin key'); if(!key) return;
+  if(key !== ADMIN_KEY){ showToast('Invalid admin key'); return; }
+  $('#adminCard').removeClass('hidden'); renderAdminTable(); renderActivity(); showToast('Admin opened'); pushActivity({action:'admin_login', time:new Date().toLocaleString()});
+});
+$('#closeAdmin').on('click', function(){ $('#adminCard').addClass('hidden'); });
+$('#exportCsv').on('click', function(){ if(!users.length){ showToast('No users'); return; } let csv='Name,Mobile,Aadhaar,Income,Category,Date\n'; users.forEach(u=> csv+=`${u.name},${u.mobile},${u.aadhaar},${u.income},${u.category},${u.date}\n`); const blob=new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='users.csv'; a.click(); showToast('CSV exported'); });
+
+$('#undoBtn').on('click', function(){ if(!lastDeleted){ showToast('Nothing to undo'); return; } users.push(lastDeleted); saveUsers(users); renderAdminTable(); pushActivity({action:'undo_delete', user:lastDeleted.name, time:new Date().toLocaleString()}); lastDeleted=null; showToast('Undo successful'); });
+
+/* activity */
+function renderActivity(){ const a = loadActivity(); $('#activityLog').empty(); a.slice(0,80).forEach(it=> $('#activityLog').append(`<li>${it.time} — ${it.action}${it.user?(': '+it.user):''}</li>`)); }
+
+/* pushActivity wrapper */
+function pushActivity(entry){ pushActivityLocal(entry); renderActivity(); }
+function pushActivityLocal(entry){ const a = loadActivity(); a.unshift(entry); localStorage.setItem(ACTIVITY_KEY, JSON.stringify(a.slice(0,200))); }
+
+/* ================= THEME TOGGLING: DARK + HIGH CONTRAST ================= */
+function applyTheme(){
+  const dark = localStorage.getItem('ui_dark') === '1';
+  const high = localStorage.getItem('ui_high') === '1';
+  document.body.classList.toggle('dark', dark);
+  document.body.classList.toggle('high-contrast', high);
+  $('#toggleDark').attr('aria-pressed', dark ? 'true' : 'false');
+  $('#toggleContrast').attr('aria-pressed', high ? 'true' : 'false');
+}
+$('#toggleDark').on('click', function(){
+  const cur = localStorage.getItem('ui_dark') === '1';
+  localStorage.setItem('ui_dark', cur ? '0' : '1'); applyTheme();
+});
+$('#toggleContrast').on('click', function(){
+  const cur = localStorage.getItem('ui_high') === '1';
+  localStorage.setItem('ui_high', cur ? '0' : '1'); applyTheme();
+});
+applyTheme();
+
+/* ================= INIT ================= */
+renderAdminTable();
+renderActivity();
+
+/* helpers on load */
+function pushActivity(entry){ const a=loadActivity(); a.unshift(entry); localStorage.setItem(ACTIVITY_KEY, JSON.stringify(a.slice(0,200))); renderActivity(); }
+</script>
+</body>
+</html>
